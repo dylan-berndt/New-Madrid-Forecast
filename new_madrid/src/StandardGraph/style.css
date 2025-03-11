@@ -1,0 +1,30 @@
+
+
+.StandardGraph {
+    /* border: 5px red solid; */
+    font-family: "Montserrat";
+    overflow: visible;
+    font-size: 20px;
+
+    text-align: left;
+}
+
+.StandardGraph h {
+    display: block;
+    margin-left: 2%;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.StandardGraph hr {
+    display: block;
+    margin-bottom: 25px;
+    margin-left: 0%;
+    width: 104%;
+}
+
+.RangeTooltip {
+    width: 100%;
+    height: 60px;
+    /* border: 5px red solid; */
+}
