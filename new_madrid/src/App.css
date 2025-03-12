@@ -44,8 +44,11 @@
   padding-top: 2vh;
 
   font-size: 4vh;
+  font-weight: 600;
 
   display: flex;
+
+  border-bottom: 4px white solid;
 }
 
 .Title img {
@@ -58,5 +61,40 @@
 .Title p {
   margin: 0px;
   margin-left: 25px;
+  margin-right: 25px;
   padding: 0px;
+  width: 100%;
+  text-align: left;
+}
+
+.GraphContainer {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  column-gap: 240px;
+  margin-left: -60px;
+
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+.GraphContainer {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+.GraphContainer::-webkit-scrollbar { 
+  display: none;  /* Safari and Chrome */
+}
+
+.Info {
+  width: 100%;
+  margin-top: 12px;
+  position: fixed;
+  bottom: 0px;
+}
+
+.Info p {
+  font-size: 16px;
+  color: grey;
+  text-align: left;
+  margin-left: 24px;
 }

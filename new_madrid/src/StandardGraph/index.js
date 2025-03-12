@@ -10,17 +10,19 @@ function RangeTooltip({setLeft, setRight}) {
 }
 
 export default function StandardGraph({width, height, origin, title, axis}) {
-    const [timestamps, setTimestamps] = useState([1]);
-    const [data, setData] = useState([1]);
+    const [timestamps, setTimestamps] = useState([]);
+    const [data, setData] = useState([]);
     const [left, setLeft] = useState([-1]);
     const [right, setRight] = useState([-1]);
 
-    // console.log("Data type:", typeof data);
+    const [maxLeft, setMaxLeft] = useState([-1]);
+    const [maxRight, setMaxRight] = useState([-1]);
 
     useEffect(() => {
         fetch(origin)
         .then((response) => response.json())
         .then((data) => {
+            setTimestamps(data.dates);
             setData(data.sequence);
         }) 
         .catch((err) => {
@@ -29,14 +31,30 @@ export default function StandardGraph({width, height, origin, title, axis}) {
     }, []);
 
     useEffect(() => {
-        setLeft(0);
-        setRight(data.length);
+        setLeft(Math.min(...timestamps));
+        setRight(Math.max(...timestamps));
+        setMaxLeft(Math.min(...timestamps));
+        setMaxRight(Math.max(...timestamps));
     }, [data]);
 
-    const lineData = data.filter((element, index) => index >= left && index <= right);
-    const chartData = lineData.map((element, index) => {
+    function formatDate(date) {
+        const d = new Date(date * 1000);
+        var minutes = d.getMinutes().toString();
+        if (minutes.length == 1) {
+            minutes = "0" + minutes;
+        }
+        var hours = d.getHours();
+        const meridian = hours > 12 ? "AM" : "PM"
+        hours = hours % 12;
+        hours = hours == 0 ? 12 : hours;
+        return (d.getMonth() + 1) + "/" + d.getDate() + " " + hours + ":" + minutes + " " + meridian;
+    }
+
+    // const lineData = data.filter((element, index) => index >= left && index <= right);
+    // const dates = timestamps.filter((element, index) => index >= left && index <= right);
+    const chartData = data.map((element, index) => {
         return {
-            x: index,
+            x: timestamps[index],
             y: element
         }
     })
@@ -45,13 +63,13 @@ export default function StandardGraph({width, height, origin, title, axis}) {
         <h>{title}</h>
         <hr></hr>
         <LineChart className="StandardLine" width={width} height={height} data={chartData}>
-            <Line type="monotone" dataKey="y" stroke="#8884d8" dot={false} activeDot={true}/>
-            <CartesianGrid stroke="#ccc" strokeDasharray="10 10"/>
-            <XAxis dataKey="x" interval={14}>
+            <CartesianGrid stroke="#ccc" strokeDasharray="5 5" fillOpacity={0.0}/>
+            <Line type="monotone" dataKey="y" stroke="#8884d8" dot={false} activeDot={true} strokeWidth={4}/>
+            <XAxis dataKey="x" type="number" domain={[left, right]}  tickMargin={10} tickFormatter={formatDate} >
                 {/* <Label value={"Date"} offset={10} position="bottom"/> */}
             </XAxis>
             <YAxis>
-                <Label value={axis} angle={-90} dx={-10}/>
+                <Label value={axis} angle={-90} dx={-20}/>
             </YAxis>
             <Tooltip animationDuration={150} animationEasing='ease-out'/>
         </LineChart>
