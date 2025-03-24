@@ -2,12 +2,8 @@ import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Label} from 'rec
 import {useEffect, useState} from 'react';
 import React from 'react';
 import './style.css';
+import {formatDate, RangeSlider, CustomTooltip} from '../Tools';
 
-function RangeTooltip({setLeft, setRight}) {
-    return <div className="RangeTooltip">
-
-    </div>
-}
 
 export default function StandardGraph({width, height, origin, title, axis}) {
     const [timestamps, setTimestamps] = useState([]);
@@ -37,43 +33,35 @@ export default function StandardGraph({width, height, origin, title, axis}) {
         setMaxRight(Math.max(...timestamps));
     }, [data]);
 
-    function formatDate(date) {
-        const d = new Date(date * 1000);
-        var minutes = d.getMinutes().toString();
-        if (minutes.length == 1) {
-            minutes = "0" + minutes;
+    const dates = timestamps.filter((element, index) => element >= left && element <= right);
+    const chartData = dates.map((element, index) => {
+        const xIndex = timestamps.indexOf(element);
+        var obj = {
+            x: element
         }
-        var hours = d.getHours();
-        const meridian = hours > 12 ? "AM" : "PM"
-        hours = hours % 12;
-        hours = hours == 0 ? 12 : hours;
-        return (d.getMonth() + 1) + "/" + d.getDate() + " " + hours + ":" + minutes + " " + meridian;
-    }
-
-    // const lineData = data.filter((element, index) => index >= left && index <= right);
-    // const dates = timestamps.filter((element, index) => index >= left && index <= right);
-    const chartData = data.map((element, index) => {
-        return {
-            x: timestamps[index],
-            y: element
-        }
+        obj[axis] = data[xIndex];
+        return obj;
     })
+
+    chartData.sort((a, b) => a.x - b.x);
+
+    const ticks = [...Array(5).keys()].map((x) => left + (x * (right - left)) / 4);
 
     return <div className="StandardGraph">
         <h>{title}</h>
         <hr></hr>
         <LineChart className="StandardLine" width={width} height={height} data={chartData}>
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" fillOpacity={0.0}/>
-            <Line type="monotone" dataKey="y" stroke="#8884d8" dot={false} activeDot={true} strokeWidth={4}/>
-            <XAxis dataKey="x" type="number" domain={[left, right]}  tickMargin={10} tickFormatter={formatDate} >
+            <Line type="monotone" dataKey={axis} stroke="#8884d8" dot={false} activeDot={true} strokeWidth={4} animationDuration={0}/>
+            <XAxis dataKey="x" type="number" domain={[left, right]}  tickMargin={10} tickFormatter={formatDate} ticks={ticks} >
                 {/* <Label value={"Date"} offset={10} position="bottom"/> */}
             </XAxis>
             <YAxis>
                 <Label value={axis} angle={-90} dx={-20}/>
             </YAxis>
-            <Tooltip animationDuration={150} animationEasing='ease-out'/>
+            <Tooltip animationDuration={150} animationEasing='ease-out' content={CustomTooltip}/>
         </LineChart>
 
-        <RangeTooltip setLeft={setLeft} setRight={setRight}/>
+        <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/>
     </div>
 }

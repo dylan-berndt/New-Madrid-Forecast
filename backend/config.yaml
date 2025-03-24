@@ -1,0 +1,50 @@
+contextLength: 10752
+storeLength: 16128
+pullLength: 96
+sliceNum: 96
+
+convolved: False
+inputStationary: False
+outputStationary: True
+
+encoderHidden: 12
+decoderHidden: 12
+mixtures: 6
+layers: 2
+
+parameters: [
+  [USGS, 07021475, 00065],
+  [USGS, 07022000, 00060],
+  [USGS, 07022000, 00065],
+  [USGS, 03399800, 00065],
+  [USGS, 03303280, 00065],
+  [USGS, 03381700, 00065],
+  [USGS, 07020500, 00060],
+  [USGS, 07020500, 00065],
+  [USGS, 07010000, 00060],
+  [USGS, 07010000, 00065],
+  [USGS, 06935965, 00060],
+  [USGS, 06935965, 00065],
+  [USGS, 05587450, 00060],
+  [USGS, 05587450, 00060],
+  [AG2, KSTL, temperature],
+  [AG2, KSTL, precipitation],
+  [AG2, KSTL, relativeHumidity],
+  [AG2, KSTL, dewpoint],
+  [AG2, KCOU, temperature],
+  [AG2, KCOU, precipitation],
+  [AG2, KCOU, relativeHumidity],
+  [AG2, KCOU, dewpoint],
+  [AG2, KCGI, temperature],
+  [AG2, KCGI, precipitation],
+  [AG2, KCGI, relativeHumidity],
+  [AG2, KCGI, dewpoint],
+  [AG2, KJBR, temperature],
+  [AG2, KJBR, precipitation],
+  [AG2, KJBR, relativeHumidity],
+  [AG2, KJBR, dewpoint],
+  [AG2, KSDF, temperature],
+  [AG2, KSDF, precipitation],
+  [AG2, KSDF, relativeHumidity],
+  [AG2, KSDF, dewpoint]
+]

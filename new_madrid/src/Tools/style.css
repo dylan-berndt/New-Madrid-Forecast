@@ -1,0 +1,33 @@
+.RangeSlider {
+    width: calc(100% - 50px);
+    height: 30px;
+    border: 2px grey solid;
+    margin-top: 10px;
+    position: relative;
+    user-select: none;
+    margin-left: 40px;
+    border-radius: 20px;
+}
+
+.RangeHandle {
+    position: absolute;
+    background-color: white;
+    width: 40px;
+    height: 100%;
+    border: none;
+    border-radius: 20px;
+    border: 2px grey solid;
+    top: -2px;
+}
+
+.CustomTooltip {
+    background: rgba(204, 204, 204, 0.4);
+    height: auto;
+    padding: 10px;
+}
+
+.CustomTooltip p {
+    opacity: 2.0;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}

@@ -1,16 +1,26 @@
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Label, Legend} from 'recharts';
-import {useEffect, useState} from 'react';
+import {useEffect, useState, useRef} from 'react';
 import React from 'react';
 import './style.css';
-
-function RangeTooltip({setLeft, setRight}) {
-    return <div className="RangeTooltip">
-
-    </div>
-}
+import {formatDate, RangeSlider, CustomTooltip} from '../Tools';
 
 function ToggleTooltip({toggles, setToggles}) {
-    return <></>
+    function toggle(name) {
+        return () => {
+            setToggles(prevToggles => ({
+                ...prevToggles,
+                [name]: !prevToggles[name]
+            }));
+        }
+    }
+    return <div class="ToggleTooltip">
+        {Object.keys(toggles).map((key) => {
+            return <>
+            <button onClick={toggle(key)} style={{backgroundColor: toggles[key] ? "grey" : "white"}}></button>
+            <p>{key}</p>
+            </>
+        })}
+    </div>
 }
 
 export default function PredictionGraph({width, height, origins, title, names, colors, axis}) {
@@ -72,21 +82,8 @@ export default function PredictionGraph({width, height, origins, title, names, c
         return <></>
     }
 
-    function formatDate(date) {
-        const d = new Date(date * 1000);
-        var minutes = d.getMinutes().toString();
-        if (minutes.length == 1) {
-            minutes = "0" + minutes;
-        }
-        var hours = d.getHours();
-        const meridian = hours > 12 ? "AM" : "PM"
-        hours = hours % 12;
-        hours = hours == 0 ? 12 : hours;
-        return (d.getMonth() + 1) + "/" + d.getDate() + " " + hours + ":" + minutes + " " + meridian;
-    }
-
-    // const xIndices = xValues.filter((element, index) => element >= left && element <= right);
-    var chartData = xValues.map((xIndex) => {
+    const xIndices = xValues.filter((element, index) => element >= left && element <= right);
+    var chartData = xIndices.map((xIndex) => {
         return origins.reduce((obj, origin, i) => {
             const originIndex = timestamps[origin].indexOf(xIndex);
             if (originIndex == -1) {
@@ -101,6 +98,8 @@ export default function PredictionGraph({width, height, origins, title, names, c
 
     chartData.sort((a, b) => a.x - b.x);
 
+    const ticks = [...Array(5).keys()].map((x) => left + (x * (right - left)) / 4);
+
     return <div className="PredictionGraph">
         <h>{title}</h>
         <hr></hr>
@@ -108,19 +107,20 @@ export default function PredictionGraph({width, height, origins, title, names, c
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" fillOpacity={0.0}/>
 
             {origins.map((key, index) => {
-                return <Line type="monotone" connectNulls dataKey={names[index]} stroke={colors[index]} dot={false} activeDot={true} strokeWidth={4}/>
+                if (!toggles[names[index]]) return;
+                return <Line type="monotone" connectNulls dataKey={names[index]} stroke={colors[index]} dot={false} activeDot={true} strokeWidth={4} animationDuration={0}/>
             })}
             {/* <Line type="monotone" dataKey="y" stroke="#8884d8" dot={false} activeDot={true} strokeWidth={4}/> */}
 
-            <XAxis dataKey="x" type="number" domain={[left, right]}  tickMargin={10} tickFormatter={formatDate}/>
+            <XAxis dataKey="x" type="number" domain={[left, right]}  tickMargin={10} tickFormatter={formatDate} ticks={ticks}/>
             <YAxis>
                 <Label value={axis} angle={-90} dx={-20}/>
             </YAxis>
-            <Tooltip animationDuration={150} animationEasing='ease-out'/>
+            <Tooltip animationDuration={150} animationEasing='ease-out' content={CustomTooltip}/>
             <Legend verticalAlign="top" height={36}/>
         </LineChart>
 
-        <RangeTooltip setLeft={setLeft} setRight={setRight}/>
+        <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/>
         <ToggleTooltip toggles={toggles} setToggles={setToggles}/>
     </div>
 }

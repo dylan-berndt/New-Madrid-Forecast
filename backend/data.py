@@ -1,9 +1,58 @@
 from datetime import datetime, timedelta
 import requests
+import numpy as np
+import yaml
+from types import SimpleNamespace
+import os
+from dotenv import load_dotenv
+import pandas as pd
+from io import StringIO
 
-mostRecent = None
 
 model = None
+
+with open("backend/config.yaml", "r") as f:
+    config = yaml.safe_load(f)
+    config = SimpleNamespace(**config)
+
+
+# API data caching, keeps track of dates
+class DataSeries:
+    def __init__(self, origin):
+        self.origin = origin
+
+        self.location = origin[0]
+        self.stationID = origin[1]
+        self.parameterID = origin[2]
+
+        if self.location == "USGS":
+            self.x, self.y = getSingleGauge(self.stationID, self.parameterID, config.storeLength // (24 * 4))
+
+        if self.location == "AG2":
+            self.x, self.y = getAG2(self.stationID, self.parameterID, config.storeLength // (24 * 4))
+
+    def update(self):
+        if self.location == "USGS":
+            self.x, self.y = getSingleGauge(self.stationID, self.parameterID, config.pullLength // (24 * 4))
+
+        if self.location == "AG2":
+            self.x, self.y = getAG2(self.stationID, self.parameterID, config.pullLength // (24 * 4))
+
+    def get(self, space):
+        pass
+
+
+class Dataset:
+    def __init__(self):
+        self.lastCall = datetime.now()
+
+    def getRecent(self):
+        dataRange = [datetime.now() - timedelta(hours=config.contextLength // 4), datetime.now()]
+        linspace = np.linspace(dataRange[0].timestamp(), dataRange[1].timestamp(), config.contextLength // config.sliceNum)
+
+        x = []
+        for series in self.series:
+            x.append(series.get(linspace))
 
 
 def dateInt(dateString):
@@ -50,21 +99,70 @@ def getSingleGauge(stationID, parameterID, days):
     return dates, values
 
 
-def refreshData():
-    if (datetime.now() - mostRecent).minutes > 15:
-        getData()
-
-    mostRecent = datetime.now()
-
-
-def getData():
-    if mostRecent is None:
-        return
-
-    startDate = mostRecent
+def getAG2(stationID, parameterID, days):
+    startDate = datetime.now() - timedelta(days=days)
     endDate = datetime.now()
 
+    credentials = load_dotenv()
+
+    parameters = {
+        "Account": credentials["AG2ACCOUNT"],
+        "profile": credentials["AG2PROFILE"],
+        "password": credentials["AG2PASSWORD"],
+        "HistoricalProductID": "HISTORICAL_HOURLY_OBSERVED",
+        "DataTypes[]": [parameterID],
+        "TempUnits": "F",
+        "StartDate": startDate.strftime("%m/%d/%Y"),
+        "EndDate": endDate.strftime("%m/%d/%Y"),
+        "CityIds[]": [stationID]
+    }
+
+    url = "https://www.wsitrader.com/Services/CSVDownloadService.svc/GetHistoricalObservations?"
+    for key in parameters:
+        if type(parameters[key]) == list:
+            for parameter in parameters[key]:
+                url += f"{key}={parameter}&"
+        else:
+            url += f"{key}={parameters[key]}&"
+
+    print(f"Fetching from: {url}")
+
+    data = requests.get(url).text.replace("\r\n", "\n")
+
+    frames = data.split(" - ")[1:]
+    for frame in frames:
+        frame = '\n'.join(frame.split('\n')[:-1])
+        csvIO = StringIO(frame)
+        df = pd.read_csv(csvIO, sep=",", header=1)
+        df.columns = ["Date", "Hour", parameterID]
+
+        df["Hour"] = df["Hour"].astype('str')
+
+        df["Hour"] = df["Hour"].transform(lambda x: x if len(x) > 1 else "0" + x)
+
+        df["Date"] = df[["Date", "Hour"]].agg(':'.join, axis=1)
+
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y:%H")
+        df["Date"] = df["Date"].transform(lambda x: x.timestamp())
+
+        return df["Date"].to_numpy(), df[parameterID].to_numpy()
 
 
+# TODO: Store NOAA predictions for accuracy metrics, interpretability
+def requestNOAA(url, target):
+    data = requests.get(url).json()
+    dates = []
+    sequence = []
+    for datum in data['data']:
+        date = datetime.strptime(datum['validTime'], "%Y-%m-%dT%H:%M:%SZ")
+        dates.append(date.timestamp())
+        sequence.append(datum[target])
+    
+    response = {
+        'dates': dates,
+        'sequence': sequence
+    }
+
+    return response
 
 
