@@ -1,9 +1,8 @@
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Label, Legend} from 'recharts';
 import {useEffect, useState, useRef} from 'react';
 import React from 'react';
 import './style.css';
 
-export function formatDate(date) {
+export function formatDate(date, addTime=true) {
     const d = new Date(date * 1000);
     var minutes = d.getMinutes().toString();
     if (minutes.length == 1) {
@@ -13,7 +12,8 @@ export function formatDate(date) {
     const meridian = hours > 12 ? "AM" : "PM"
     hours = hours % 12;
     hours = hours == 0 ? 12 : hours;
-    return (d.getMonth() + 1) + "/" + d.getDate() + " " + hours + ":" + minutes + " " + meridian;
+    const time = " " + hours + ":" + minutes + " " + meridian;
+    return (d.getMonth() + 1) + "/" + d.getDate() + (addTime ? time : "");
 }
 
 function RangeHandle({position, onMouseDown, left}) {
@@ -36,7 +36,7 @@ export function RangeSlider({setLeft, setRight, maxLeft, maxRight}) {
 
     useEffect(() => {
         setWidth(sliderRef.current.offsetWidth - 2);
-        setRightPosition(sliderRef.current.offsetWidth - 42);
+        setRightPosition(sliderRef.current.offsetWidth - 27);
     }, [sliderRef.current]);
 
     const onMouseMove = (event) => {
@@ -46,12 +46,12 @@ export function RangeSlider({setLeft, setRight, maxLeft, maxRight}) {
 
         var bounds = slider.getBoundingClientRect();
         var boxX = event.clientX - bounds.left;
-        boxX = Math.max(-2, Math.min(width - 40, boxX - 20));
+        boxX = Math.max(-2, Math.min(width - 25, boxX - 20));
 
         // console.log(draggingLeft);
 
         if (draggingLeftRef.current) {
-            boxX = Math.min(rightPosition - 40, boxX);
+            boxX = Math.min(rightPosition - 25, boxX);
 
             var x = boxX / (bounds.right - bounds.left);
             x = Math.max(0, Math.min(1, x));
@@ -61,7 +61,7 @@ export function RangeSlider({setLeft, setRight, maxLeft, maxRight}) {
             setLeftPosition(boxX);
         }
         else {
-            boxX = Math.max(leftPosition + 40, boxX);
+            boxX = Math.max(leftPosition + 25, boxX);
 
             var x = boxX / (bounds.right - bounds.left);
             x = Math.max(0, Math.min(1, x));

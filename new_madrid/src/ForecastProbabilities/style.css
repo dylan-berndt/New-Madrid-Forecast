@@ -1,0 +1,19 @@
+
+
+.ForecastArea {
+    display: grid;
+    width: 100%;
+    height: 20%;
+
+    grid-template-columns: repeat(14, 1fr);
+}
+
+.ForecastCell {
+    width: 1fr;
+    font-size: 16px;
+    font-family: 'Montserrat'
+}
+
+.ForecastCell p {
+    display: block;
+}

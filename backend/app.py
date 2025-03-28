@@ -17,8 +17,8 @@ def getStationData(stationID, parameterID, days=28):
 
     return jsonify(response)
 
-@app.route('/model/<int:horizon>/<int:offset>')
-def getPredictions(horizon, offset):
+@app.route('/model/<int:horizon>')
+def getPredictions(horizon):
     pass
 
 @app.route('/floodhub/gauge')
@@ -31,15 +31,26 @@ def getFloodHubDischarge():
 
 @app.route('/noaa/gauge')
 def getNOAAGauge():
-    response = requestNOAA(noaaURL, 'primary')
+    dates, sequence = requestNOAA(noaaURL, 'primary')
+
+    response = {
+        'dates': dates,
+        'sequence': sequence
+    }
 
     return jsonify(response)
 
 @app.route('/noaa/discharge')
 def getNOAADischarge():
-    response = requestNOAA(noaaURL, 'secondary')
+    dates, sequence = requestNOAA(noaaURL, 'secondary')
+
+    response = {
+        'dates': dates,
+        'sequence': sequence
+    }
 
     return jsonify(response)
 
 if __name__ == "__main__":
     app.run(debug=True)
+

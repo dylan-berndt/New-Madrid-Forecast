@@ -1,6 +1,6 @@
 .RangeSlider {
     width: calc(100% - 50px);
-    height: 30px;
+    height: 15px;
     border: 2px grey solid;
     margin-top: 10px;
     position: relative;
@@ -12,11 +12,14 @@
 .RangeHandle {
     position: absolute;
     background-color: white;
-    width: 40px;
+    width: 25px;
     height: 100%;
-    border: none;
+
     border-radius: 20px;
     border: 2px grey solid;
+
+    outline: 2px white solid;
+
     top: -2px;
 }
 

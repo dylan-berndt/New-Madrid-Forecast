@@ -2,6 +2,7 @@
 import './App.css';
 import StandardGraph from './StandardGraph';
 import PredictionGraph from './PredictionGraph';
+import ForecastProbabilities from './ForecastProbabilities';
 import logo from './Associated Logo.jpg';
 
 var origins = ['/observed/07024175/00065', '/noaa/gauge'];
@@ -17,7 +18,10 @@ function App() {
           <p>New Madrid Forecast Ensemble</p>
         </header>
         <div className="GraphContainer">
-          <PredictionGraph width={800} height={543} origins={origins} title={'New Madrid Gauge Forecast'} names={names} colors={colors} axis={"Gauge Height (ft)"}/>
+          <div>
+            <PredictionGraph width={800} height={300} origins={origins} title={'New Madrid Gauge Forecast'} names={names} colors={colors} axis={"Gauge Height (ft)"}/>
+            <ForecastProbabilities></ForecastProbabilities>
+          </div>
           <div>
             <StandardGraph width={400} height={200} origin='/observed/03612600/00065' title={'Ohio at Olmsted: 03612600'} axis={"Gauge Height (ft)"}/>
             <StandardGraph width={400} height={200} origin='/observed/07022000/00065' title={'Mississippi at Thebes: 07022000'} axis={"Gauge Height (ft)"}/>

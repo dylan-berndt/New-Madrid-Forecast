@@ -45,125 +45,6 @@ def dateInt(dateString):
     return date.timestamp()
 
 
-def loadHistoricalNewMadrid(folder="Data"):
-    df = pd.read_csv(f"Data/New Madrid Gauge Height.csv")
-    df.columns = ["Date", "Height"]
-
-    df["Date"] = df["Date"].transform(lambda x: x[:-7])
-    df["Date"] = pd.to_datetime(df["Date"], format="%d %b %Y")
-    df["Date"] = df["Date"].transform(lambda x: x.timestamp())
-
-    df = df[df["Height"].notnull()]
-
-    file = h5py.File(f"{folder}/07024175.hdf5", "w")
-    file.create_dataset("00065 values", data=df["Height"])
-    file.create_dataset("00065 dates", data=df["Date"])
-    file.close()
-
-
-def downloadStationData(stationID, parameterCodes, startDate=None, endDate=datetime.now(), period=None, log=True):
-    if startDate is not None:
-        dates = [datetime.strftime(startDate, "%Y-%m-%d"), datetime.strftime(endDate, "%Y-%m-%d")]
-
-    url = "https://waterservices.usgs.gov/nwis/iv/?"
-    url += f"sites={stationID}"
-    url += f"&startDT={dates[0]}&endDT={dates[1]}" if period is None else f"&period={period}"
-    url += f"&parameterCd={','.join(parameterCodes)}"
-    url += f"&format=json"
-
-    if log: print("Fetching from:", url)
-
-    response = requests.get(url)
-    if not response.ok:
-        print("Uh Oh.")
-        quit()
-
-    data = response.json()
-
-    if log: print("Fetched")
-
-    timeSeries = data['value']['timeSeries']
-    parameters = [obj['variable']['variableCode'][0]['value'] for obj in timeSeries]
-    values = [obj['values'][0]['value'] for obj in timeSeries]
-
-    sortedValues = [values[parameters.index(parameterCode)] for parameterCode in parameterCodes]
-
-    return sortedValues
-
-
-def downloadStationDataset(stationParameters, startDate, endDate=datetime.now(), folder="Data"):
-    for station in stationParameters:
-        data = downloadStationData(station["id"], parameterCodes=station["parameters"], startDate=startDate, endDate=endDate)
-
-        file = h5py.File(f"{folder}/{station['id']}.hdf5", "w")
-        
-        for p in range(len(data)):
-            dates = [dateInt(node["dateTime"]) for node in data[p] if float(node["value"]) > -1e+5]
-            values = [float(node["value"]) for node in data[p] if float(node["value"]) > -1e+5]
-
-            paired = sorted(zip(dates, values))
-            dates, values = zip(*paired)
-
-            file.create_dataset(f"{station['parameters'][p]} values", data=values)
-            file.create_dataset(f"{station['parameters'][p]} dates", data=dates)
-
-        file.close()
-
-
-def downloadHistoricalAG2(parameters, save=True, folder="Data"):
-    url = "https://www.wsitrader.com/Services/CSVDownloadService.svc/GetHistoricalObservations?"
-    for key in parameters:
-        if type(parameters[key]) == list:
-            for parameter in parameters[key]:
-                url += f"{key}={parameter}&"
-        else:
-            url += f"{key}={parameters[key]}&"
-
-    print(f"Fetching from: {url}")
-
-    data = requests.get(url).text.replace("\r\n", "\n")
-
-    columnNames = parameters["DataTypes[]"]
-
-    aggregated = []
-
-    frames = data.split(" - ")[1:]
-    for frame in frames:
-        frame = '\n'.join(frame.split('\n')[:-1])
-        csvIO = StringIO(frame)
-        df = pd.read_csv(csvIO, sep=",", header=1)
-        df.columns = ["Date", "Hour"] + columnNames
-        
-        name = frame[:4]
-        file = h5py.File(f"{folder}/{name}.hdf5", "w")
-
-        df["Hour"] = df["Hour"].astype('str')
-
-        # df["Date"] = df["Date"].transform(lambda x: f"{x[6:]}-{x[3:5]}-{x[:2]}")
-
-        df["Hour"] = df["Hour"].transform(lambda x: x if len(x) > 1 else "0" + x)
-
-        df["Date"] = df[["Date", "Hour"]].agg(':'.join, axis=1)
-
-        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y:%H")
-        df["Date"] = df["Date"].transform(lambda x: x.timestamp())
-
-        # if not save:
-        #     aggregated.append([df["Date"].to_numpy(), df["Temperature"].to_numpy()])
-        #     aggregated.append([df["Date"].to_numpy(), df["Precipitation"].to_numpy()])
-        #     continue
-
-        # Create dataset per parameter, date values and measurements
-        for columnName in columnNames:
-            file.create_dataset(f"{columnName} dates", data=df["Date"])
-            file.create_dataset(f"{columnName} values", data=df[columnName])
-
-        file.close()
-
-    if not save:
-        return aggregated
-
-
 class StationData(Dataset):
     def __init__(self, predictorIndex=None, contextLength=32, sliceNum=1, timesteps=1, folder="Data", dumpScales=True, display=False, test=False,
                  thresholds = [-3, -6], desampleDepth=3, useScales=False, convolved=False, resampleDepth=0, resampleStrength=0.05, stationary=False,
@@ -233,17 +114,6 @@ class StationData(Dataset):
                 if stationary:
                     interpolated = interpolated[sliceNum:] - interpolated[:-sliceNum]
 
-                # interpolated = interpolated[::sliceNum]
-
-                # if name == "Precipitation":
-                #     scaler = MinMaxScaler()
-                #     # interpolated[interpolated < 0] = 0
-                #     # print(min(interpolated), min(values), max(interpolated), max(values))
-                #     normalized = scaler.fit_transform(interpolated.reshape(-1, 1))
-                #     normalized = normalized.squeeze()
-
-                # else:
-                # interpolated = np.log(interpolated)
                 mean, std = np.mean(interpolated), np.std(interpolated)
                 if useScales:
                     mean, std = previousScales[stationID][name]
@@ -304,10 +174,6 @@ class StationData(Dataset):
             plt.legend()
             plt.show()
 
-        # under = np.sum(self.y < self.thresholds[0])
-        # total = np.sum(np.ones(self.y.shape))
-        # originalSplit = total / under
-
         totalBins = 2 ** (desampleDepth)
         xBins = []
         yBins = []
@@ -336,25 +202,6 @@ class StationData(Dataset):
                     xBins.append(xBin.T)
                     yBins.append(yBin)
                     tBins.append(tBin)
-
-        # for i in range(1, resampleDepth + 1):
-        #     noiseLevel = resampleStrength * (i / resampleDepth)
-        #     for b in range(len(xBins)):
-        #         noise1 = np.random.normal(loc=0, scale=noiseLevel, size=xBins[0].shape)
-        #         noise2 = np.random.normal(loc=0, scale=noiseLevel, size=yBins[0].shape)
-        #         xBins.append(xBins[b] + noise1)
-        #         # yBins.append(yBins[b] + noise2)
-        #         yBins.append(yBins[b])
-        #         tBins.append(tBins[b])
-
-        # yAdjust = np.concatenate([yBins], axis=0)
-        # under = np.sum(yAdjust < self.thresholds[0])
-        # total = np.sum(np.ones(yAdjust.shape))
-        # self.positiveSplit = total / under
-
-        # print(originalSplit, total / under)
-
-        # print(len(xBins))
 
         self.xBins = torch.tensor(np.array(xBins), dtype=torch.float32)
         self.yBins = torch.tensor(np.array(yBins), dtype=torch.float32)
@@ -417,47 +264,6 @@ class StationData(Dataset):
         y = self.yBins[bin][j + self.timesteps * self.sliceNum: j + ((self.contextLength + self.timesteps) * self.sliceNum): self.sliceNum]
 
         return x, y
-        
-    
-
-class TransformerData(StationData, Dataset):
-    def __len__(self):
-        if self.test:
-            return (self.x.shape[0] - self.contextLength)
-
-        return len(self.xBins) * int((self.xBins[0].shape[0] - ((self.contextLength + self.timesteps) * self.sliceNum)))
-    
-    def __getitem__(self, i):
-        if self.test:
-            x = self.x[i: i + self.contextLength]
-
-            if self.predictorIndex is None:
-                y = self.x[i + self.timesteps: i + self.contextLength + self.timesteps]
-
-            else:
-                y = self.y[i + self.timesteps: i + self.contextLength + self.timesteps]
-
-            return x, y
-    
-        binSize = int((self.xBins[0].shape[0] - ((self.contextLength + self.timesteps) * self.sliceNum)))
-        bin = i // binSize
-        j = i % binSize
-
-        x = self.xBins[bin][j: j + self.contextLength * self.sliceNum: self.sliceNum]
-        y = self.yBins[bin][j + self.timesteps * self.sliceNum: j + ((self.contextLength + self.timesteps) * self.sliceNum): self.sliceNum]
-
-        if self.predictorIndex is None:
-            y = self.xBins[bin][j + self.timesteps * self.sliceNum: j + (self.contextLength + self.timesteps) * self.sliceNum: self.sliceNum]
-
-        return x, y
-    
-
-class PatchData(StationData, Dataset):
-    def __len__(self):
-        pass
-    
-    def __getitem__(self, i):
-        pass
     
 
 class StackData(StationData, Dataset):
@@ -477,9 +283,15 @@ class StackData(StationData, Dataset):
             else:
                 y = self.y[i + self.timesteps: i + self.contextLength + self.timesteps]
 
-            t = self.t[i + self.timesteps: i + self.contextLength + self.timesteps]
+            t = self.t[i: i + self.contextLength + self.timesteps]
 
-            return (x, t), y
+            f = self.x[i + self.contextLength: i + self.contextLength + self.timesteps]
+            f = f[:, self.forecastMask]
+
+            if f.size(0) < self.timesteps:
+                f = torch.concatenate([f, torch.zeros(self.timesteps - f.size(0), f.size(1))], dim=0)
+
+            return (x, t, f), y
         
         noiseLevel = (i / len(self)) // (self.resampleDepth + 1)
     
@@ -494,12 +306,15 @@ class StackData(StationData, Dataset):
         if self.predictorIndex is None:
             y = self.xBins[bin][j + self.timesteps * self.sliceNum: j + (self.contextLength + self.timesteps) * self.sliceNum: self.sliceNum]
 
-        t = self.tBins[bin][j + self.timesteps * self.sliceNum: j + ((self.contextLength + self.timesteps) * self.sliceNum): self.sliceNum]
+        t = self.tBins[bin][j: j + ((self.contextLength + self.timesteps) * self.sliceNum): self.sliceNum]
+
+        f = self.xBins[bin][j + self.contextLength * self.sliceNum: j + ((self.contextLength + self.timesteps) * self.sliceNum): self.sliceNum]
+        f = f[:, self.forecastMask]
 
         noise = torch.tensor(np.random.normal(loc=0, scale=noiseLevel, size=y.shape), dtype=y.dtype)
         y += noise
 
-        return (x, t), y
+        return (x, t, f), y
     
 
 class RelativeEncoding(nn.Module):
@@ -574,27 +389,6 @@ class CMAL(nn.Module):
         return m, b, t, p
     
 
-class GaussianHead(nn.Module):
-    def __init__(self, inFeatures, outFeatures, eps=1e-5):
-        super().__init__()
-
-        self.fc1 = nn.Linear(inFeatures, inFeatures * 4)
-        # self.silu = nn.SiLU()
-        self.fc2 = nn.Linear(inFeatures * 4, outFeatures * 2)
-
-        self.eps = eps
-
-    def forward(self, x):
-        x = self.fc1(x)
-        h = self.fc2(x)
-
-        m, v = h.chunk(2, dim=-1)
-
-        v = torch.exp(v) + self.eps
-
-        return m, v
-    
-
 class BatchNorm(nn.Module):
     def __init__(self, hiddenDim):
         super().__init__()
@@ -605,114 +399,89 @@ class BatchNorm(nn.Module):
     
 
 class StackedLSTM(nn.Module):
-    def __init__(self, timesteps, parameters, hiddenDim, components=1, numLayers=3, dropout=0.2, head=GaussianHead):
+    def __init__(self, timesteps, parameters, forecastParameters, encoderHidden, decoderHidden, components=1, numLayers=3, dropout=0.2, head=CMAL, addEncodings=False):
         super().__init__()
         self.timesteps = timesteps
+        self.addEncodings = addEncodings
 
         self.fc1 = nn.Sequential(
-            nn.Linear(parameters, hiddenDim * 2),
-            nn.ReLU(),
-            nn.Linear(hiddenDim * 2, hiddenDim)
+            nn.Linear(parameters, encoderHidden),
+            nn.ReLU()
         )
-        self.bn1 = BatchNorm(hiddenDim)
+        self.bn1 = BatchNorm(encoderHidden)
+        self.d1 = nn.Dropout(dropout)
 
-        self.encoder = nn.LSTM(hiddenDim, hiddenDim, num_layers=numLayers, dropout=dropout, batch_first=True)
+        self.encoder = nn.LSTM(encoderHidden, encoderHidden, num_layers=numLayers, dropout=dropout, batch_first=True)
 
-        self.skipProjection = nn.Linear(hiddenDim, hiddenDim)
+        self.skipProjection = nn.Sequential(
+            nn.Linear(encoderHidden, decoderHidden),
+            nn.ReLU(),
+            nn.Linear(decoderHidden, decoderHidden)
+        )
 
-        self.encodings = IndexedPositionalEncoding(hiddenDim, batch_first=True)
-        self.bn2 = BatchNorm(hiddenDim)
+        self.hiddenBridge = nn.Linear(encoderHidden, decoderHidden)
+        self.hiddenNorm = nn.LayerNorm(decoderHidden)
+        self.cellBridge = nn.Linear(encoderHidden, decoderHidden)
+        self.cellNorm = nn.LayerNorm(decoderHidden)
+
+        self.encodings = IndexedPositionalEncoding(encoderHidden, batch_first=True)
+        self.bn2 = BatchNorm(encoderHidden)
+        self.d2 = nn.Dropout(dropout)
+
+        self.fc2 = nn.Sequential(
+            nn.Linear(forecastParameters, encoderHidden),
+            nn.ReLU()
+        )
+
         # self.encodings = LearnedEncoding(hiddenDim, max_len=timesteps, batch_first=True)
-        self.decoder = nn.LSTM(hiddenDim, hiddenDim, num_layers=numLayers, dropout=dropout, batch_first=True)
+        self.decoder = nn.LSTM(encoderHidden, decoderHidden, num_layers=numLayers, dropout=dropout, batch_first=True)
 
-        self.bn3 = BatchNorm(hiddenDim)
-        # self.mergeProjection = nn.Linear(hiddenDim * 2, hiddenDim)
+        self.bn3 = BatchNorm(decoderHidden)
+        self.mergeProjection = nn.Linear(decoderHidden * 2, decoderHidden)
 
-        self.head = head(hiddenDim, components)
+        self.d3 = nn.Dropout(dropout)
+        self.head = head(decoderHidden, components)
 
 
     def forward(self, x):
-        x, t = x
+        x, t, f = x
 
         x = self.fc1(x)
+        if self.addEncodings:
+            x = self.encodings(x, t[:, :-self.timesteps])
+
         x = self.bn1(x)
+        x = self.d1(x)
 
         x, (hidden, cell) = self.encoder(x)
 
-        y = x[:, -self.timesteps:, :]
-        z = self.skipProjection(y)
+        hidden = self.hiddenBridge(hidden)
+        cell = self.cellBridge(cell)
 
-        y = self.bn2(y)
+        # y = x[:, -self.timesteps:, :]
+        # z = self.skipProjection(y)
 
-        t = t[:, -self.timesteps:]
-        y = self.encodings(y, t)
+        # y = self.bn2(y)
+        # y = torch.zeros_like(y)
+
+        y = self.fc2(f)
+
+        if self.addEncodings:
+            y = self.encodings(y, t[:, -self.timesteps:])
+
+        y = self.d2(y)
 
         x, _ = self.decoder(y, (hidden, cell))
         x = self.bn3(x)
 
         # x = torch.cat([x, z], dim=-1)
         # x = self.mergeProjection(x)
-        x = x + z
+        # x = x + z
+        x = self.d3(x)
         x = self.head(x)
 
         return x
     
-    def save(self, saveLocation):
-        state = self.state_dict()
-
-        torch.save(
-                {'state_dict': state}, 
-                saveLocation)
-        
-
-    def load(self, saveLocation):
-        loaded = torch.load(saveLocation, weights_only=True)['state_dict']
-
-        self.load_state_dict(loaded)
-
-
-class StackTST(nn.Module):
-    def __init__(self, timesteps, features, mixtures, dModel, heads, feed, layers, head=nn.Linear):
-        super().__init__()
-
-        self.timesteps = timesteps
-
-        self.patchEmbedding = nn.Linear(features, dModel)
-
-        self.positionalEncoding = RelativeEncoding(dModel, max_len=1000, batch_first=True)
-        self.temporalEncoding = IndexedPositionalEncoding(dModel, batch_first=True)
-
-        self.encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(dModel, heads, feed, batch_first=True),
-            num_layers=layers
-        )
-
-        self.decoder = nn.TransformerDecoder(
-            nn.TransformerDecoderLayer(dModel, heads, feed, batch_first=True),
-            num_layers=layers
-        )
-
-        self.enforcer = nn.LSTM(dModel, dModel, 1, batch_first=True)
-
-        self.output = head(dModel, mixtures)
-
-    def forward(self, x):
-        x, t = x
-
-        x = self.patchEmbedding(x)
-        x = self.positionalEncoding(x)
-        x = self.encoder(x)
-
-        t = self.temporalEncoding(torch.zeros_like(x), t)[:, :self.timesteps]
-        x = self.positionalEncoding(x)
-        x = self.decoder(t, x)
-        x, _ = self.enforcer(x)
-
-        x = self.output(x)
-
-        return x
-
-
     def save(self, saveLocation):
         state = self.state_dict()
 
@@ -746,12 +515,6 @@ def sampleCMAL(mu, beta, tau, pi, numSamples):
 
         u = torch.rand_like(mChosen)
 
-        # thing = torch.where(
-        #     u < tChosen,
-        #     mChosen + ((bChosen * torch.log(u / tChosen)) / (1 - tChosen)),
-        #     mChosen - ((bChosen * torch.log((1 - u) / (1 - tChosen))) / tChosen)
-        # ).flatten()
-
         samples[:, t] = (mChosen + bChosen * (
             torch.where(
                 u < tChosen,
@@ -765,10 +528,32 @@ def sampleCMAL(mu, beta, tau, pi, numSamples):
     return samples
 
 
-def sampleGaussian(mean, variance, numSamples):
-    std = torch.sqrt(variance)
-    noise = torch.randn(*mean.shape, numSamples)
-    
-    return mean.unsqueeze(-1) + std.unsqueeze(-1) * noise
+def computeAccuracyMetrics(yPred, yTrue, threshold):
+    tp = (yPred < threshold).astype(float) * (yTrue < threshold).astype(float)
+    fn = (yPred > threshold).astype(float) * (yTrue < threshold).astype(float)
+    fp = (yPred < threshold).astype(float) * (yTrue > threshold).astype(float)
+
+    tp = np.mean(tp, axis=1)
+    fn = np.mean(fn, axis=1)
+    fp = np.mean(fp, axis=1)
+
+    recall = tp / (tp + fn)
+    precision = tp / (tp + fp)
+
+    return recall, precision
+
+
+def computeLowGaugeProbability(samples, recall, precision, threshold):
+    low = samples < threshold
+    meanPrediction = np.mean(low, axis=-1)
+    low = low[:, 1:]
+
+    numerator = precision * meanPrediction
+    denominator = numerator + (1 - recall) * (1 - meanPrediction)
+
+    probability = np.divide(numerator, denominator, out=np.zeros_like(numerator), where=denominator != 0)
+
+    return probability
+
 
 

@@ -7,15 +7,18 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 from io import StringIO
+import h5py
 
 
 model = None
+credentials = load_dotenv()
 
 with open("backend/config.yaml", "r") as f:
     config = yaml.safe_load(f)
     config = SimpleNamespace(**config)
 
 
+# TODO: Actual caching
 # API data caching, keeps track of dates
 class DataSeries:
     def __init__(self, origin):
@@ -103,8 +106,6 @@ def getAG2(stationID, parameterID, days):
     startDate = datetime.now() - timedelta(days=days)
     endDate = datetime.now()
 
-    credentials = load_dotenv()
-
     parameters = {
         "Account": credentials["AG2ACCOUNT"],
         "profile": credentials["AG2PROFILE"],
@@ -127,8 +128,61 @@ def getAG2(stationID, parameterID, days):
 
     print(f"Fetching from: {url}")
 
-    data = requests.get(url).text.replace("\r\n", "\n")
+    # TODO: Actual error handling
+    response = requests.get(url)
+    if not response.ok:
+        print("ISSUE")
 
+    data = response.text.replace("\r\n", "\n")
+
+    frames = data.split(" - ")[1:]
+    for frame in frames:
+        frame = '\n'.join(frame.split('\n')[:-1])
+        csvIO = StringIO(frame)
+        df = pd.read_csv(csvIO, sep=",", header=1)
+        df.columns = ["Date", "Hour", parameterID]
+
+        df["Hour"] = df["Hour"].astype('str')
+
+        df["Hour"] = df["Hour"].transform(lambda x: x if len(x) > 1 else "0" + x)
+
+        df["Date"] = df[["Date", "Hour"]].agg(':'.join, axis=1)
+
+        df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y:%H")
+        df["Date"] = df["Date"].transform(lambda x: x.timestamp())
+
+        return df["Date"].to_numpy(), df[parameterID].to_numpy()
+    
+
+def ag2Forecast(stationID):
+    parameters = {
+        "Account": credentials["AG2ACCOUNT"],
+        "profile": credentials["AG2PROFILE"],
+        "password": credentials["AG2PASSWORD"],
+        "HistoricalProductID": "HISTORICAL_HOURLY_OBSERVED",
+        "TempUnits": "F",
+        "Region": "NA",
+        "SiteId": [stationID]
+    }
+
+    url = "https://www.wsitrader.com/Services/CSVDownloadService.svc/GetHourlyForecast?"
+    for key in parameters:
+        if type(parameters[key]) == list:
+            for parameter in parameters[key]:
+                url += f"{key}={parameter}&"
+        else:
+            url += f"{key}={parameters[key]}&"
+
+    print(f"Fetching from: {url}")
+
+    # TODO: Actual error handling
+    response = requests.get(url)
+    if not response.ok:
+        print("ISSUE")
+
+    data = response.text.replace("\r\n", "\n")
+
+    # TODO: Proper parameter handling, ordering
     frames = data.split(" - ")[1:]
     for frame in frames:
         frame = '\n'.join(frame.split('\n')[:-1])
@@ -148,7 +202,6 @@ def getAG2(stationID, parameterID, days):
         return df["Date"].to_numpy(), df[parameterID].to_numpy()
 
 
-# TODO: Store NOAA predictions for accuracy metrics, interpretability
 def requestNOAA(url, target):
     data = requests.get(url).json()
     dates = []
@@ -158,11 +211,15 @@ def requestNOAA(url, target):
         dates.append(date.timestamp())
         sequence.append(datum[target])
     
-    response = {
-        'dates': dates,
-        'sequence': sequence
-    }
+    return dates, sequence
 
-    return response
+
+# TODO: Request regularly to keep reasonable log
+def archiveNOAA(url, target):
+    dates, sequence = requestNOAA(url, target)
+
+    file = h5py.File(f"NOAA/{target} {datetime.now().strftime("%Y-%m-%d %H:%M")}.hdf5", "w")
+    file.create_dataset("Dates", data=dates)
+    file.create_dataset("Values", data=sequence)
 
 
