@@ -45,7 +45,7 @@ export default function StandardGraph({width, height, origin, title, axis}) {
 
     chartData.sort((a, b) => a.x - b.x);
 
-    const ticks = [...Array(5).keys()].map((x) => left + (x * (right - left)) / 4);
+    const ticks = [...Array(3).keys()].map((x) => left + (x * (right - left)) / 2);
 
     return <div className="StandardGraph">
         <h>{title}</h>

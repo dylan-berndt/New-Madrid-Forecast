@@ -9,53 +9,11 @@ import pandas as pd
 from io import StringIO
 import h5py
 
-
-model = None
-credentials = load_dotenv()
+load_dotenv()
 
 with open("backend/config.yaml", "r") as f:
     config = yaml.safe_load(f)
     config = SimpleNamespace(**config)
-
-
-# TODO: Actual caching
-# API data caching, keeps track of dates
-class DataSeries:
-    def __init__(self, origin):
-        self.origin = origin
-
-        self.location = origin[0]
-        self.stationID = origin[1]
-        self.parameterID = origin[2]
-
-        if self.location == "USGS":
-            self.x, self.y = getSingleGauge(self.stationID, self.parameterID, config.storeLength // (24 * 4))
-
-        if self.location == "AG2":
-            self.x, self.y = getAG2(self.stationID, self.parameterID, config.storeLength // (24 * 4))
-
-    def update(self):
-        if self.location == "USGS":
-            self.x, self.y = getSingleGauge(self.stationID, self.parameterID, config.pullLength // (24 * 4))
-
-        if self.location == "AG2":
-            self.x, self.y = getAG2(self.stationID, self.parameterID, config.pullLength // (24 * 4))
-
-    def get(self, space):
-        pass
-
-
-class Dataset:
-    def __init__(self):
-        self.lastCall = datetime.now()
-
-    def getRecent(self):
-        dataRange = [datetime.now() - timedelta(hours=config.contextLength // 4), datetime.now()]
-        linspace = np.linspace(dataRange[0].timestamp(), dataRange[1].timestamp(), config.contextLength // config.sliceNum)
-
-        x = []
-        for series in self.series:
-            x.append(series.get(linspace))
 
 
 def dateInt(dateString):
@@ -107,9 +65,9 @@ def getAG2(stationID, parameterID, days):
     endDate = datetime.now()
 
     parameters = {
-        "Account": credentials["AG2ACCOUNT"],
-        "profile": credentials["AG2PROFILE"],
-        "password": credentials["AG2PASSWORD"],
+        "Account": os.getenv("AG2ACCOUNT"),
+        "profile": os.getenv("AG2PROFILE"),
+        "password": os.getenv("AG2PASSWORD"),
         "HistoricalProductID": "HISTORICAL_HOURLY_OBSERVED",
         "DataTypes[]": [parameterID],
         "TempUnits": "F",
@@ -125,8 +83,6 @@ def getAG2(stationID, parameterID, days):
                 url += f"{key}={parameter}&"
         else:
             url += f"{key}={parameters[key]}&"
-
-    print(f"Fetching from: {url}")
 
     # TODO: Actual error handling
     response = requests.get(url)
@@ -151,14 +107,14 @@ def getAG2(stationID, parameterID, days):
         df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y:%H")
         df["Date"] = df["Date"].transform(lambda x: x.timestamp())
 
-        return df["Date"].to_numpy(), df[parameterID].to_numpy()
+        return df["Date"].to_list(), df[parameterID].to_list()
     
 
 def ag2Forecast(stationID):
     parameters = {
-        "Account": credentials["AG2ACCOUNT"],
-        "profile": credentials["AG2PROFILE"],
-        "password": credentials["AG2PASSWORD"],
+        "Account": os.getenv("AG2ACCOUNT"),
+        "profile": os.getenv("AG2PROFILE"),
+        "password": os.getenv("AG2PASSWORD"),
         "HistoricalProductID": "HISTORICAL_HOURLY_OBSERVED",
         "TempUnits": "F",
         "Region": "NA",
@@ -188,7 +144,7 @@ def ag2Forecast(stationID):
         frame = '\n'.join(frame.split('\n')[:-1])
         csvIO = StringIO(frame)
         df = pd.read_csv(csvIO, sep=",", header=1)
-        df.columns = ["Date", "Hour", parameterID]
+        df.columns[:2] = ["Date", "Hour"]
 
         df["Hour"] = df["Hour"].astype('str')
 

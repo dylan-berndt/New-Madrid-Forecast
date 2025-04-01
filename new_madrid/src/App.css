@@ -70,12 +70,19 @@
 .GraphContainer {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  column-gap: 240px;
+  column-gap: 120px;
   margin-left: -60px;
 
+  height:fit-content;
+
   overflow-y: scroll;
-  overflow-x: hidden;
+
+  margin-bottom: 120px;
 }
+
+/* .GraphContainer div {
+  height: fit-content;
+} */
 
 .GraphContainer {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
@@ -90,12 +97,17 @@
   margin-top: 12px;
   position: fixed;
   bottom: 0px;
+  height: 40px;
+  justify-content: center;
+  background-color: #282c34;
 }
 
 .Info p {
   font-size: 16px;
   color: grey;
   text-align: right;
+  margin: 0px;
+  margin-top: 8px;
   margin-left: 24px;
   margin-right: 24px;
 }

@@ -7,11 +7,6 @@ convolved: False
 inputStationary: False
 outputStationary: True
 
-encoderHidden: 12
-decoderHidden: 12
-mixtures: 6
-layers: 2
-
 parameters: [
   [USGS, 07021475, 00065],
   [USGS, 07022000, 00060],

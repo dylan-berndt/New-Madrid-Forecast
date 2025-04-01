@@ -6,13 +6,19 @@
     overflow: visible;
     font-size: 16px;
 
+    position: relative;
+
     text-align: left;
-    margin-bottom: 32px;
+    margin-bottom: 64px;
+}
+
+.PredictionGraph .RangeSlider {
+    margin-left: 5px !important;
 }
 
 .PredictionGraph h {
     display: block;
-    margin-left: 2%;
+    margin-left: 0px;
     margin-bottom: 15px;
     font-size: 24px;
 }
@@ -21,7 +27,7 @@
     display: block;
     margin-bottom: 25px;
     margin-left: 0%;
-    width: 104%;
+    width: 100%;
 }
 
 .ToggleTooltip {

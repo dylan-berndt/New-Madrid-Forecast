@@ -4,11 +4,11 @@ import './style.css';
 import {formatDate} from '../Tools';
 
 export default function ForecastProbabilities() {
-    const [probs, setProbs] = useState(new Array(14).fill(0));
+    const [probs, setProbs] = useState(new Array(14).fill(0.8));
     const [dates, setDates] = useState(new Array(14).fill(0));
 
     useEffect(() => {
-        fetch("/model/14")
+        fetch("/model/probabilities/14")
         .then((response) => response.json())
         .then((data) => {
             setProbs(data.sequence);
@@ -19,14 +19,21 @@ export default function ForecastProbabilities() {
         })
     }, []);
 
-    return <div className="ForecastArea">
+    return <>
+    <h>Low Gauge Height Forecast</h>
+    <hr></hr>
+    <div className="ForecastArea">
         {
             probs.map((element, index) => {
                 return <div className="ForecastCell">
                     <p>{formatDate(dates[index], false)}</p>
-                    <p>{element}%</p>
+                    <p>{element * 100}%</p>
+                    <div>
+                        <div style={{height: (element * 100).toString() + "%"}}/>
+                    </div>
                 </div>
             })
         }
     </div>
+    </>
 }

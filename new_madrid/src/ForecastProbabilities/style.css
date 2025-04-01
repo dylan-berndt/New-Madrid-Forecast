@@ -3,15 +3,54 @@
 .ForecastArea {
     display: grid;
     width: 100%;
-    height: 20%;
+    margin-top: 0px;
+
+    height: 150px !important;
 
     grid-template-columns: repeat(14, 1fr);
+}
+
+h {
+    width: 100%;
+    display: block;
+    text-align: left;
+    font-size: 24px;
+    font-family: 'Montserrat';
+}
+
+hr {
+    display: block;
+    margin-bottom: 25px;
+    margin-left: 0%;
+    width: 100%;
 }
 
 .ForecastCell {
     width: 1fr;
     font-size: 16px;
-    font-family: 'Montserrat'
+    height: 100%;
+    font-family: 'Montserrat';
+    position: relative;
+}
+
+.ForecastCell div {
+    display: block;
+    height: 100%;
+    position: relative;
+    background-color: #181c24;
+    border: 2px solid #025529;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.ForecastCell div div {
+    background-color: #007e3e;
+    position: absolute;
+    bottom: 0px;
+    margin: 0px;
+    border: none;
+    width: 100%;
+    border-top: 2px solid white;
 }
 
 .ForecastCell p {
