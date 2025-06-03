@@ -3,6 +3,7 @@ import {useEffect, useState} from 'react';
 import React from 'react';
 import './style.css';
 import {formatDate, RangeSlider, CustomTooltip} from '../Tools';
+import ErrorTooltip from '../ErrorTooltip';
 
 
 export default function StandardGraph({width, height, origin, title, axis}) {
@@ -14,6 +15,8 @@ export default function StandardGraph({width, height, origin, title, axis}) {
     const [maxLeft, setMaxLeft] = useState([-1]);
     const [maxRight, setMaxRight] = useState([-1]);
 
+    const [errorText, setErrorText] = useState("");
+
     useEffect(() => {
         fetch(origin)
         .then((response) => response.json())
@@ -23,6 +26,7 @@ export default function StandardGraph({width, height, origin, title, axis}) {
         }) 
         .catch((err) => {
             console.error(err);
+            setErrorText(err.message || "Unknown error");
         })
     }, []);
 
@@ -48,7 +52,7 @@ export default function StandardGraph({width, height, origin, title, axis}) {
     const ticks = [...Array(3).keys()].map((x) => left + (x * (right - left)) / 2);
 
     return <div className="StandardGraph">
-        <h>{title}</h>
+        <h>{title}</h><ErrorTooltip height={24} text={errorText}></ErrorTooltip>
         <hr></hr>
         <LineChart className="StandardLine" width={width} height={height} data={chartData}>
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" fillOpacity={0.0}/>
@@ -62,6 +66,6 @@ export default function StandardGraph({width, height, origin, title, axis}) {
             <Tooltip animationDuration={150} animationEasing='ease-out' content={CustomTooltip}/>
         </LineChart>
 
-        <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/>
+        {/* <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/> */}
     </div>
 }

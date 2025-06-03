@@ -5,7 +5,7 @@
     width: 100%;
     margin-top: 0px;
 
-    height: 150px !important;
+    height: 280px !important;
 
     grid-template-columns: repeat(14, 1fr);
 }
@@ -28,7 +28,7 @@ hr {
 .ForecastCell {
     width: 1fr;
     font-size: 16px;
-    height: 100%;
+    height: calc(100% - 120px);
     font-family: 'Montserrat';
     position: relative;
 }

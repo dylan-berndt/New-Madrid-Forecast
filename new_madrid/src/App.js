@@ -5,9 +5,9 @@ import PredictionGraph from './PredictionGraph';
 import ForecastProbabilities from './ForecastProbabilities';
 import logo from './Associated Logo.jpg';
 
-var origins = ['/observed/USGS/07024175/00065', '/noaa/gauge'];
-var names = ['Observed Data', 'NOAA Predictions'];  
-var colors = ['#8884d8', '#3355ff'];
+var origins = ['/api/observed/USGS/07024175/00065', '/api/noaa/gauge', 'api/model/value'];
+var names = ['Observed Data', 'NOAA Predictions', 'Model Predictions'];  
+var colors = ['#8884d8', '#3355ff', '#bbaa88'];
 
 function App() {
   return (
@@ -23,10 +23,10 @@ function App() {
             <ForecastProbabilities></ForecastProbabilities>
           </div>
           <div>
-            <StandardGraph width={500} height={200} origin='/observed/USGS/03612600/00065' title={'Ohio at Olmsted: 03612600'} axis={"Gauge Height (ft)"}/>
-            <StandardGraph width={500} height={200} origin='/observed/USGS/07022000/00065' title={'Mississippi at Thebes: 07022000'} axis={"Gauge Height (ft)"}/>
+            <StandardGraph width={500} height={200} origin='/api/observed/USGS/03612600/00065' title={'Ohio at Olmsted: 03612600'} axis={"Gauge Height (ft)"}/>
+            <StandardGraph width={500} height={200} origin='/api/observed/USGS/07022000/00065' title={'Mississippi at Thebes: 07022000'} axis={"Gauge Height (ft)"}/>
             {/* <StandardGraph width={500} height={200} origin='/observed/AG2/KCGI/temperature' title={'Temperature at Cape Girardeau'} axis={"Temperature (F°)"}/> */}
-            <StandardGraph width={500} height={200} origin='/observed/AG2/KCGI/precipitation' title={'Rainfall at Cape Girardeau'} axis={"Precipitation (in)"}/>
+            <StandardGraph width={500} height={200} origin='/api/observed/AG2/KCGI/Precip (in)' title={'Rainfall at Cape Girardeau'} axis={"Precipitation (in)"}/>
           </div>
         </div>
         <div className="Info">

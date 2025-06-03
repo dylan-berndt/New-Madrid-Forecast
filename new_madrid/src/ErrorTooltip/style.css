@@ -1,0 +1,21 @@
+
+
+.ErrorBox {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.ErrorBox img {
+    height: 100%;
+    width: auto;
+    display: inline;
+}
+
+.ErrorBox p {
+    color: #ca1e13;
+    display: inline;
+    margin-left: 16px;
+    font-size: 16px !important;
+}
+

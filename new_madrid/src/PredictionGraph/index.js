@@ -3,6 +3,7 @@ import {useEffect, useState, useRef} from 'react';
 import React from 'react';
 import './style.css';
 import {formatDate, RangeSlider, CustomTooltip} from '../Tools';
+import ErrorTooltip from '../ErrorTooltip';
 
 function ToggleTooltip({toggles, setToggles}) {
     function toggle(name) {
@@ -13,10 +14,10 @@ function ToggleTooltip({toggles, setToggles}) {
             }));
         }
     }
-    return <div class="ToggleTooltip">
+    return <div className="ToggleTooltip">
         {Object.keys(toggles).map((key) => {
             return <>
-            <button onClick={toggle(key)} style={{backgroundColor: toggles[key] ? "grey" : "white"}}></button>
+            <button onClick={toggle(key)} key={key} style={{backgroundColor: toggles[key] ? "grey" : "white"}}></button>
             <p>{key}</p>
             </>
         })}
@@ -47,6 +48,8 @@ export default function PredictionGraph({width, height, origins, title, names, c
 
     const [xValues, setXValues] = useState([]);
 
+    const [errorText, setErrorText] = useState("");
+
     useEffect(() => {
         for (const origin of origins) {
             fetch(origin)
@@ -63,6 +66,7 @@ export default function PredictionGraph({width, height, origins, title, names, c
             })
             .catch((err) => {
                 console.error(err);
+                setErrorText(err);
             })
         }
     }, []);
@@ -101,14 +105,14 @@ export default function PredictionGraph({width, height, origins, title, names, c
     const ticks = [...Array(5).keys()].map((x) => left + (x * (right - left)) / 4);
 
     return <div className="PredictionGraph">
-        <h>{title}</h>
+        <h>{title}</h><ErrorTooltip height={24} text={errorText}></ErrorTooltip>
         <hr></hr>
         <LineChart className="PredictionLine" width={width} height={height} data={chartData}>
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" fillOpacity={0.0}/>
 
             {origins.map((key, index) => {
                 if (!toggles[names[index]]) return;
-                return <Line type="monotone" connectNulls dataKey={names[index]} stroke={colors[index]} dot={false} activeDot={true} strokeWidth={4} animationDuration={0}/>
+                return <Line type="monotone" key={key} connectNulls dataKey={names[index]} stroke={colors[index]} dot={false} activeDot={true} strokeWidth={4} animationDuration={0}/>
             })}
             {/* <Line type="monotone" dataKey="y" stroke="#8884d8" dot={false} activeDot={true} strokeWidth={4}/> */}
 
@@ -120,7 +124,7 @@ export default function PredictionGraph({width, height, origins, title, names, c
             <Legend verticalAlign="top" height={36}/>
         </LineChart>
 
-        <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/>
+        {/* <RangeSlider setLeft={setLeft} setRight={setRight} maxLeft={maxLeft} maxRight={maxRight}/> */}
         <ToggleTooltip toggles={toggles} setToggles={setToggles}/>
     </div>
 }

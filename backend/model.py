@@ -149,7 +149,12 @@ class StationData(Dataset):
 
         self.x.append(seasonal)
 
+        linearTrend = np.arange(len(linspace)) / len(linspace)
+
+        self.x.append(linearTrend)
+
         self.names.append("Season")
+        self.names.append("Linear")
 
         minimumDate = datetime(2008, 1, 1).timestamp()
         dataStart = np.min(linspace) - minimumDate

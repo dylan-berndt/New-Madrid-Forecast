@@ -100,7 +100,7 @@ export const CustomTooltip = ({active, payload, label}) => {
                 <p className="label">{`${formatDate(label)}`}</p>
                 {
                     payload.map((element) => {
-                        return <p color={element.color}>{`${element.name}: ${element.value} ft`}</p>
+                        return <p color={element.color}>{`${element.name}: ${element.value}`}</p>
                     })
                 }
             </div>
